@@ -49,10 +49,18 @@ const worker = new Worker('file-processing', async (job) => {
     const blob = new Blob([data.Body], { type: 'application/pdf' });
     formData.append('file', blob, objectKey.split('/').pop());
 
-    const response = await fetch(parserUrl, {
-        method: 'POST',
-        body: formData,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
+    let response;
+    try {
+        response = await fetch(parserUrl, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeout);
+    }
 
     if (!response.ok) {
         const text = await response.text();

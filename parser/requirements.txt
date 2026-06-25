@@ -2,4 +2,6 @@ fastapi==0.136.0
 uvicorn[standard]==0.44.0
 python-multipart==0.0.26
 marker-pdf==1.10.2
-python-3.11.9
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu

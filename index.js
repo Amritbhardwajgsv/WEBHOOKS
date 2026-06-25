@@ -1,6 +1,8 @@
 require('dotenv').config();
+console.log('REDIS_URL loaded:', !!process.env.REDIS_URL);
 
 const AWS = require('aws-sdk');
+const IORedis = require('ioredis');
 const express = require('express');
 const { Queue, Worker } = require('bullmq');
 const {
@@ -17,10 +19,15 @@ const s3 = new AWS.S3({
     region: process.env.AWS_REGION
 });
 
-const redisConnection = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: Number(process.env.REDIS_PORT || 6379)
-};
+const redisConnection = process.env.REDIS_URL
+    ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+    : new IORedis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT || 6379),
+        password: process.env.REDIS_PASSWORD || undefined,
+        tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+        maxRetriesPerRequest: null,
+    });
 
 const fileQueue = new Queue('file-processing', {
     connection: redisConnection

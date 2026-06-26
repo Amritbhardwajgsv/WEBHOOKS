@@ -2,12 +2,10 @@ const { google } = require('googleapis');
 
 function getAuthClient() {
     const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-    return new google.auth.JWT(
-        credentials.client_email,
-        null,
-        credentials.private_key,
-        ['https://www.googleapis.com/auth/spreadsheets']
-    );
+    return new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
 }
 
 function extractFields(outputArray) {

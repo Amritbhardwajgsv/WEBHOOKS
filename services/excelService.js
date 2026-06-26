@@ -36,6 +36,7 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
 
     const auth = getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
+    console.log('sheets append → sheetId:', sheetId, 'sheetName:', sheetName);
 
     const { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName } = extractFields(parsed.output);
 

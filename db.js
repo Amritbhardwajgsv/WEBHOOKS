@@ -89,7 +89,13 @@ async function findExtractedElementsByEntity(entityId, limit = 20) {
         .toArray();
 }
 
+async function connect() {
+    await getMongoClient();
+    console.log('MongoDB connected');
+}
+
 module.exports = {
+    connect,
     saveExtractedElements,
     listExtractedElements,
     findExtractedElementsByObjectKey,

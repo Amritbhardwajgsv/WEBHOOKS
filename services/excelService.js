@@ -19,7 +19,7 @@ function extractFields(outputArray) {
     const tenderNo      = match(/Tender No[.:\s]+([A-Z0-9_]+)/i);
     const dueDate       = match(/Tender Closing Date Time\s+(\d{2}\/\d{2}\/\d{4})/i)
                        || match(/Closing Date(?:\/Time)?[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
-    const status        = match(/Tender Type\s+([^\n]+)/i);
+    const status        = match(/Tender Type\s+(\w+)/i);
     const rawValue      = match(/Advertised Value\s+([\d.]+)/i);
     const valueInCr     = rawValue ? (parseFloat(rawValue) / 10000000).toFixed(2) + ' Cr' : '';
     const nameOfWork    = match(/Name of Work\s+([^\n]{10,})/i);

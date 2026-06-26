@@ -2,6 +2,7 @@ const { google } = require('googleapis');
 
 function getAuthClient() {
     const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    console.log('sheets auth → client_email:', credentials.client_email);
     return new google.auth.GoogleAuth({
         credentials,
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],

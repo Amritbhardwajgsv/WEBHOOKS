@@ -22,7 +22,7 @@ function extractFields(outputArray) {
     const status        = match(/Tender Type\s+(\w+)/i);
     const rawValue      = match(/Advertised Value\s+([\d.]+)/i);
     const valueInCr     = rawValue ? (parseFloat(rawValue) / 10000000).toFixed(2) + ' Cr' : '';
-    const nameOfWork    = match(/Name of Work\s+([^\n]{10,})/i);
+    const nameOfWork    = match(/Name of Work\s+([\s\S]+?)(?=\.?\s*Bidding\s+type)/i);
     const authority     = match(/Designation\s*:\s*([^\n]+)/i);
     const authorityName = match(/Signed By[:\s]+([^\n]+)/i);
 

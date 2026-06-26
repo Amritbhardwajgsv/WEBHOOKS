@@ -1,38 +1,48 @@
-const getaccesstoken = require('./getaccesstoken');
+const { google } = require('googleapis');
+
+function getAuthClient() {
+    return new google.auth.JWT(
+        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        null,
+        process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        ['https://www.googleapis.com/auth/spreadsheets']
+    );
+}
 
 function extractFields(outputArray) {
     const text = Array.isArray(outputArray) ? outputArray.join('\n') : outputArray || '';
     const match = (regex) => (text.match(regex) || [])[1]?.trim() || '';
 
-    const tenderNo    = match(/Tender No[.:\s]+([A-Z0-9_]+)/i);
-    const dueDate     = match(/Tender Closing Date Time\s+(\d{2}\/\d{2}\/\d{4})/i)
-                     || match(/Closing Date(?:\/Time)?[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
-    const status      = match(/Tender Type\s+([^\n]+)/i);
-    const rawValue    = match(/Advertised Value\s+([\d.]+)/i);
-    const valueInCr   = rawValue ? (parseFloat(rawValue) / 10000000).toFixed(2) + ' Cr' : '';
-    const nameOfWork  = match(/Name of Work\s+([^\n]{10,})/i);
-    const authority   = match(/Designation\s*:\s*([^\n]+)/i);
+    const tenderNo      = match(/Tender No[.:\s]+([A-Z0-9_]+)/i);
+    const dueDate       = match(/Tender Closing Date Time\s+(\d{2}\/\d{2}\/\d{4})/i)
+                       || match(/Closing Date(?:\/Time)?[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+    const status        = match(/Tender Type\s+([^\n]+)/i);
+    const rawValue      = match(/Advertised Value\s+([\d.]+)/i);
+    const valueInCr     = rawValue ? (parseFloat(rawValue) / 10000000).toFixed(2) + ' Cr' : '';
+    const nameOfWork    = match(/Name of Work\s+([^\n]{10,})/i);
+    const authority     = match(/Designation\s*:\s*([^\n]+)/i);
     const authorityName = match(/Signed By[:\s]+([^\n]+)/i);
 
     return { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName };
 }
 
 async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
-    const driveId   = process.env.EXCEL_DRIVE_ID;
-    const itemId    = process.env.EXCEL_ITEM_ID;
-    const tableName = process.env.EXCEL_TABLE_NAME || 'Table1';
+    const sheetId   = process.env.GOOGLE_SHEET_ID;
+    const sheetName = process.env.GOOGLE_SHEET_NAME || 'Sheet2';
 
-    if (!driveId || !itemId) {
-        console.warn('Excel env vars not set, skipping append');
+    if (!sheetId) {
+        console.warn('GOOGLE_SHEET_ID not set, skipping append');
         return;
     }
 
-    const token = await getaccesstoken();
+    const auth = getAuthClient();
+    const sheets = google.sheets({ version: 'v4', auth });
+
     const { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName } = extractFields(parsed.output);
 
-    // Columns: Sales Territory Name | ID | Tender No. | Due Date | Qty | Status |
-    //          Publish to Forecast | Name | Category | Application | Value |
-    //          Authority | Authority Name | Status | Random | Work
+    // Order matches columns: Sales Territory Name | ID | Tender No. | Due Date | Qty |
+    // Status | Publish to Forecast | Name | Category | Application | Value |
+    // Authority | Authority Name | Status | Random | Work
     const row = [
         '',             // Sales Territory Name
         '',             // ID
@@ -52,19 +62,15 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
         nameOfWork,     // Work
     ];
 
-    const url = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${encodeURIComponent(itemId)}/workbook/tables/${tableName}/rows/add`;
-
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ values: [row] }),
+    await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A:P`,
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [row] },
     });
 
-    if (!res.ok) throw new Error(`Graph API error ${res.status}: ${await res.text()}`);
-    console.log('excel row appended for:', fileName);
+    console.log('google sheet row appended for:', fileName);
 }
 
 module.exports = { appendExcelRow };

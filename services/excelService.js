@@ -41,6 +41,13 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
     console.log('sheets append → sheetId:', sheetId, 'sheetName:', sheetName);
+    try {
+        const info = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+        console.log('spreadsheet title:', info.data.title);
+        console.log('sheet tabs:', info.data.sheets.map(s => s.properties.title));
+    } catch (e) {
+        console.log('spreadsheets.get failed:', e.message);
+    }
 
     const { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName } = extractFields(parsed.output);
 

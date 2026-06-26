@@ -1,10 +1,11 @@
 const { google } = require('googleapis');
 
 function getAuthClient() {
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
     return new google.auth.JWT(
-        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        credentials.client_email,
         null,
-        process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        credentials.private_key,
         ['https://www.googleapis.com/auth/spreadsheets']
     );
 }

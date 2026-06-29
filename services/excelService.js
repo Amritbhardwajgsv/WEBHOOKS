@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 async function getAuthClient() {
     const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
@@ -12,7 +13,7 @@ async function getAuthClient() {
     return auth;
 }
 
-function extractFields(outputArray) {
+function extractFieldsRegex(outputArray) {
     const text = Array.isArray(outputArray) ? outputArray.join('\n') : outputArray || '';
     const match = (regex) => (text.match(regex) || [])[1]?.trim() || '';
 
@@ -22,11 +23,41 @@ function extractFields(outputArray) {
     const status        = match(/Tender Type\s+(\w+)/i);
     const rawValue      = match(/Advertised Value\s+([\d.]+)/i);
     const valueInCr     = rawValue ? (parseFloat(rawValue) / 10000000).toFixed(2) + ' Cr' : '';
-    const nameOfWork    = match(/Name of Work\s+([\s\S]+?)(?=\.?\s*Bidding\s+type)/i);
+    const nameOfWork    = match(/Name of Work\s+([\s\S]+?)(?=\.?\s*Bidding\s+type)/i)
+                       || match(/Description\s*:\s*([^\n\]]+)/i);
     const authority     = match(/Designation\s*:\s*([^\n]+)/i);
     const authorityName = match(/Signed By[:\s]+([^\n]+)/i);
 
     return { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName };
+}
+
+async function extractFieldsLLM(outputArray) {
+    const text = Array.isArray(outputArray) ? outputArray.join('\n') : outputArray || '';
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+
+    const prompt = `Extract fields from this Indian Railway tender document. Return ONLY a valid JSON object, no extra text.
+
+Fields to extract:
+- tenderNo: the tender number
+- dueDate: closing/due date in DD/MM/YYYY format
+- status: tender type as a single word only (e.g. "Open", "Limited", "Single")
+- valueInCr: advertised or estimated value converted to crores with 2 decimal places and " Cr" suffix (e.g. "12.50 Cr"), or empty string if not found
+- nameOfWork: name of work for works tenders, or item description for goods/stores tenders
+- authority: designation/title of the signing authority
+- authorityName: full name of the person who signed
+
+Document:
+${text.slice(0, 8000)}
+
+Return JSON only:`;
+
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text();
+    console.log('gemini raw response:', raw.slice(0, 300));
+    const jsonMatch = raw.match(/\{[\s\S]+\}/);
+    if (!jsonMatch) throw new Error('No JSON found in Gemini response');
+    return JSON.parse(jsonMatch[0]);
 }
 
 async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
@@ -49,11 +80,22 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
         console.log('spreadsheets.get failed:', e.message);
     }
 
-    const { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName } = extractFields(parsed.output);
+    let fields;
+    if (process.env.GEMINI_API_KEY) {
+        try {
+            fields = await extractFieldsLLM(parsed.output);
+            console.log('gemini extracted fields:', JSON.stringify(fields));
+        } catch (err) {
+            console.warn('gemini extraction failed, falling back to regex:', err.message);
+            fields = extractFieldsRegex(parsed.output);
+        }
+    } else {
+        console.log('GEMINI_API_KEY not set, using regex extraction');
+        fields = extractFieldsRegex(parsed.output);
+    }
 
-    // Order matches columns: Sales Territory Name | ID | Tender No. | Due Date | Qty |
-    // Status | Publish to Forecast | Name | Category | Application | Value |
-    // Authority | Authority Name | Status | Random | Work
+    const { tenderNo, dueDate, status, valueInCr, nameOfWork, authority, authorityName } = fields;
+
     const row = [
         '',             // Sales Territory Name
         '',             // ID

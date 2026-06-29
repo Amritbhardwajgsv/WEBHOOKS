@@ -17,6 +17,7 @@ const worker = new Worker('file-processing', async (job) => {
     const saved = await saveExtractedElements({ objectKey, destination, parsed, jobId: job.id, entityId });
 
     console.log('parsed output blocks:', parsed.output?.length);
+    console.log('parsed text sample:', JSON.stringify(parsed.output?.join('\n').slice(0, 500)));
     console.log('saved extracted elements:', saved._id.toString());
 
     await appendExcelRow({ objectKey, entityId, fileName, parsed }).catch(err =>

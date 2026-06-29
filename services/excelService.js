@@ -39,13 +39,13 @@ async function extractFieldsLLM(outputArray) {
     const prompt = `Extract fields from this Indian Railway tender document. Return ONLY a valid JSON object, no extra text.
 
 Fields to extract:
-- tenderNo: the tender number
-- dueDate: closing/due date in DD/MM/YYYY format
-- status: tender type as a single word only (e.g. "Open", "Limited", "Single")
-- valueInCr: advertised or estimated value converted to crores with 2 decimal places and " Cr" suffix (e.g. "12.50 Cr"), or empty string if not found
-- nameOfWork: name of work for works tenders, or item description for goods/stores tenders
-- authority: designation/title of the signing authority
-- authorityName: full name of the person who signed
+- tenderNo: the tender number (e.g. "L1265227", "82262908B")
+- dueDate: closing/due date in DD/MM/YYYY format only (e.g. "27/06/2026")
+- status: FIRST WORD ONLY of the Tender Type field (e.g. if "Open - Indigenous" return "Open", if "Limited - Indigenous" return "Limited")
+- valueInCr: the Advertised Value field converted to crores with 2 decimal places and " Cr" suffix (e.g. "12.50 Cr"). If no Advertised Value field exists, return empty string. Do NOT use Earnest Money or Tender Doc Cost.
+- nameOfWork: name of work for works tenders, or the item/product description (Tender Title) for goods/stores tenders
+- authority: the designation/role code from the "Digitally Signed By" section (e.g. "AMM/DSD/UBL", "Sr.DSTE/S/BCT") — NOT the person's name
+- authorityName: the person's actual name from inside the parentheses in the "Digitally Signed By" section (e.g. from "AMM/DSD/UBL ( DHANANJAY KUMAR )" extract "DHANANJAY KUMAR")
 
 Document:
 ${text.slice(0, 8000)}

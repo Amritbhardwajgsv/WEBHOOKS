@@ -16,7 +16,7 @@ const worker = new Worker('file-processing', async (job) => {
     const parsed = await callParser(s3Data.Body, fileName);
     const saved = await saveExtractedElements({ objectKey, destination, parsed, jobId: job.id, entityId });
 
-    console.log('parsed result:', parsed.metadata);
+    console.log('parsed output blocks:', parsed.output?.length);
     console.log('saved extracted elements:', saved._id.toString());
 
     await appendExcelRow({ objectKey, entityId, fileName, parsed }).catch(err =>

@@ -43,7 +43,7 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
     console.log('sheets append → sheetId:', sheetId, 'sheetName:', sheetName);
     try {
         const info = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
-        console.log('spreadsheet title:', info.data.title);
+        console.log('spreadsheet title:', info.data.properties?.title);
         console.log('sheet tabs:', info.data.sheets.map(s => s.properties.title));
     } catch (e) {
         console.log('spreadsheets.get failed:', e.message);

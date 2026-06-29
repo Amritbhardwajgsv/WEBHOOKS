@@ -10,7 +10,7 @@ async function callParser(pdfBuffer, fileName) {
     }
     const { job_id } = await submitRes.json();
 
-    const maxWait = 15 * 60 * 1000;
+    const maxWait = 45 * 60 * 1000;
     const pollInterval = 15_000;
     const start = Date.now();
 
@@ -24,6 +24,9 @@ async function callParser(pdfBuffer, fileName) {
     }
 
     const resultRes = await fetch(`${baseUrl}/result/${job_id}`);
+    if (resultRes.status === 202) {
+        throw new Error(`Parser timed out — job still processing after 45 minutes`);
+    }
     if (!resultRes.ok) {
         const text = await resultRes.text();
         throw new Error(`Parser result error ${resultRes.status}: ${text}`);

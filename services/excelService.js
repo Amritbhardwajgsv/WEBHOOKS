@@ -36,6 +36,10 @@ async function extractFieldsLLM(outputArray) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
+    const beginning = text.slice(0, 6000);
+    const ending = text.length > 6000 ? text.slice(-2000) : '';
+    const docText = ending ? beginning + '\n\n[...]\n\n' + ending : beginning;
+
     const prompt = `Extract fields from this Indian Railway tender document. Return ONLY a valid JSON object, no extra text.
 
 Fields to extract:
@@ -48,7 +52,7 @@ Fields to extract:
 - authorityName: the person's actual name from inside the parentheses in the "Digitally Signed By" section (e.g. from "AMM/DSD/UBL ( DHANANJAY KUMAR )" extract "DHANANJAY KUMAR")
 
 Document:
-${text.slice(0, 8000)}
+${docText}
 
 Return JSON only:`;
 

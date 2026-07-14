@@ -115,7 +115,6 @@ async function appendExcelRow({ objectKey, entityId, fileName, parsed }) {
         authority,      // Authority
         authorityName,  // Authority Name
         '',             // Status (2nd)
-        '',             // Random
         nameOfWork,     // Work
     ];
 
